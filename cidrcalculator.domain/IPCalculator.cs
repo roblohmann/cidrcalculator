@@ -23,37 +23,6 @@ public static class IpCalculator
         return result;
     }
 
-    public static string? FindNextAvailableRange(string vnetCidr, List<string> usedCidrs, int desiredCidr)
-    {
-        var vnet = ParseCidr(vnetCidr);
-        var vnetBaseIp = IpToLong(vnet.baseIp);
-        var vnetEndIp = vnetBaseIp + (ulong)Math.Pow(2, 32 - vnet.prefix) - 1;
-
-        // Zet de gebruikte CIDRs om naar numerieke waarden
-        var usedNetworks = usedCidrs.Select(cidr => ParseCidr(cidr)).Select(c => IpToLong(c.baseIp)).ToList();
-
-        ulong currentNetwork = vnetBaseIp;
-
-        // Zoek naar het eerstvolgende beschikbare subnet
-        while (currentNetwork <= vnetEndIp)
-        {
-            // Maak het subnet van de huidige positie
-            var candidateNetwork = LongToIp(currentNetwork);
-            var candidateSubnet = $"{candidateNetwork}/{desiredCidr}";
-
-            // Controleer of dit subnet al in gebruik is
-            if (!usedNetworks.Any(u => IsNetworkInUse(candidateSubnet, u, desiredCidr)))
-            {
-                return candidateSubnet;
-            }
-
-            // Verhoog naar het volgende subnet
-            currentNetwork += (ulong)Math.Pow(2, 32 - desiredCidr);
-        }
-
-        return null; // Geen beschikbare range gevonden
-    }
-
     private static (IPAddress baseIp, int prefix) ParseCidr(string cidr)
     {
         var parts = cidr.Split('/');
@@ -66,11 +35,6 @@ public static class IpCalculator
 
         var prefix = int.Parse(parts[1]);
         return (ip, prefix);
-    }
-
-    private static uint IpToUint(IPAddress ip)
-    {
-        return BitConverter.ToUInt32(ip.GetAddressBytes().Reverse().ToArray(), 0);
     }
 
     private static uint GetSubnetMask(int prefix)
@@ -107,31 +71,25 @@ public static class IpCalculator
         return new IPAddress(BitConverter.GetBytes(value).Reverse().ToArray()).ToString();
     }
 
-    private static ulong IpToLong(IPAddress ip)
+    private static uint IpToUint(IPAddress ip)
     {
-        var bytes = ip.GetAddressBytes();
-        return (ulong)bytes[0] << 24 | (ulong)bytes[1] << 16 | (ulong)bytes[2] << 8 | bytes[3];
+        return BitConverter.ToUInt32(ip.GetAddressBytes().Reverse().ToArray(), 0);
     }
 
-    // Zet een numerieke waarde terug naar een IP-adres
-    private static IPAddress LongToIp(ulong longIp)
+    public static string GetNextCidrBlock(string cidr)
     {
-        return new IPAddress(new byte[]
-        {
-            (byte)(longIp >> 24),
-            (byte)(longIp >> 16),
-            (byte)(longIp >> 8),
-            (byte)(longIp)
-        });
-    }
+        var parts = cidr.Split('/');
+        if (parts.Length != 2)
+            throw new ArgumentException("Ongeldige CIDR-notatie");
 
-    private static bool IsNetworkInUse(string subnet, ulong usedNetwork, int desiredCidr)
-    {
-        var (baseIp, prefix) = ParseCidr(subnet);
-        var network = IpToLong(baseIp);
+        var baseIp = IPAddress.Parse(parts[0]);
+        int prefix = int.Parse(parts[1]);
 
-        // Controleer of het subnet al in gebruik is door een vergelijking van de eerste bits
-        var mask = (ulong)Math.Pow(2, 32 - desiredCidr) - 1;
-        return (network & ~mask) == (usedNetwork & ~mask);
+        uint ipAsInt = IpToUint(baseIp);
+        uint blockSize = 1u << (32 - prefix);
+        uint nextStartIp = ipAsInt + blockSize;
+
+        var nextIp = UintToIp(nextStartIp);
+        return $"{nextIp}/{prefix}";
     }
 }

@@ -83,10 +83,16 @@ public class IpCalculatorTests
 
     [Theory]
     [InlineData("10.26.0.0/20", "10.26.16.0/20")]
+    [InlineData("10.0.0.0/24", "10.0.1.0/24")]
+    [InlineData("192.168.0.0/16", "192.169.0.0/16")]
+    [InlineData("172.16.0.0/12", "172.32.0.0/12")]
+    [InlineData("10.0.255.0/24", "10.1.0.0/24")] //Volgend octet
+    [InlineData("192.168.255.0/24", "192.169.0.0/24")] //Volgend octet
+    [InlineData("10.255.0.0/16", "11.0.0.0/16")] //Overgang klasse B netwerk
     public void FindNextAvailableRange(string currentRange, string expectedRange)
     {
-        var usedCidrs = IpCalculator.GetRangeInfo("10.26.16.0/20").Addresses;
-        var nextRange = IpCalculator.FindNextAvailableRange("10.26.16.0/20", usedCidrs, 20);
+        //var usedCidrs = IpCalculator.GetRangeInfo("10.26.16.0/20").Addresses;
+        var nextRange = IpCalculator.GetNextCidrBlock(currentRange);
 
         Assert.Equal(expectedRange, nextRange);
     }
