@@ -18,12 +18,21 @@ public static class IpCalculator
         var broadcast = network | ~mask;
 
         var addresses = GetAllAddresses(network, broadcast, prefix);
-        var result = BuildRangeInfo(network, broadcast, prefix, addresses);
-
-        return result;
+        
+        return new IpRangeResponse
+        {
+            Network = UintToIp(network),
+            Broadcast = UintToIp(broadcast),
+            FirstHost = prefix >= 31 ? null : UintToIp(network + 1),
+            LastHost = prefix >= 31 ? null : UintToIp(broadcast - 1),
+            Total = addresses.Count,
+            Usable = prefix >= 31 ? addresses.Count : addresses.Count - 2,
+            NextAvailableCIDRRange = GetNextCidrBlock(cidr),
+            Addresses = addresses
+        };
     }
 
-    private static (IPAddress baseIp, int prefix) ParseCidr(string cidr)
+    public static (IPAddress baseIp, int prefix) ParseCidr(string cidr)
     {
         var parts = cidr.Split('/');
         if (parts.Length != 2)
@@ -50,20 +59,6 @@ public static class IpCalculator
             list.Add($"{new IPAddress(BitConverter.GetBytes(i).Reverse().ToArray()).ToString()}/{cidrRange}");
         }
         return list;
-    }
-
-    private static IpRangeResponse BuildRangeInfo(uint network, uint broadcast, int prefix, List<string> addresses)
-    {
-        return new IpRangeResponse
-        {
-            Network = UintToIp(network),
-            Broadcast = UintToIp(broadcast),
-            FirstHost = prefix >= 31 ? null : UintToIp(network + 1),
-            LastHost = prefix >= 31 ? null : UintToIp(broadcast - 1),
-            Total = addresses.Count,
-            Usable = prefix >= 31 ? addresses.Count : addresses.Count - 2,
-            Addresses = addresses
-        };
     }
 
     private static string UintToIp(uint value)

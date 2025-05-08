@@ -11,5 +11,6 @@ namespace cidrcalculator.domain.DTO
         public int Total { get; set; }
         public int Usable { get; set; }
         public List<string> Addresses { get; set; }
+        public string NextAvailableCIDRRange { get; set; }
     }
 }

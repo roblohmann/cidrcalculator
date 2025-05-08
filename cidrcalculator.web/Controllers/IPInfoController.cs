@@ -8,18 +8,31 @@ namespace cidrcalculator.web.Controllers;
 
 public class IPInfoController : BaseController
 {
-    [HttpPost("ipinfo")]
-    public IActionResult GetIpRangeInfo(IpRangeRequest request)
+    [HttpPost("range-info")]
+    public IActionResult GetIpRangeInfo([FromBody] IpRangeRequest request)
     {
         try
         {
+            var(baseIp, prefix) = IpCalculator.ParseCidr(request.CIDR);
+
+            if (prefix < 1 || prefix > 32)
+                return BadRequest("Prefix moet tussen 1 en 32 liggen.");
+
             var ipRangeInfo = IpCalculator.GetRangeInfo(request.CIDR);
             
             return Ok(ipRangeInfo);
         }
-        catch (Exception ex)
+        catch (FormatException)
         {
-            return BadRequest(new { error = ex.Message });
+            return BadRequest("IP-adresformaat is ongeldig.");
+        }
+        catch (ArgumentException ex)
+        {
+            return BadRequest(ex.Message);
+        }
+        catch (Exception)
+        {
+            return StatusCode(500, "Er is een onverwachte fout opgetreden.");
         }
     }
 }
