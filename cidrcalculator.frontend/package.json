@@ -49,6 +49,6 @@
     "@types/node": "^20.17.45",
     "@vitejs/plugin-react": "^4.4.1",
     "@vitejs/plugin-vue": "^5.2.3",
-    "vite": "^6.3.5"
+    "vite": "^6.4.5"
   }
 }
